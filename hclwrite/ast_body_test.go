@@ -216,6 +216,124 @@ func TestBodyGetAttribute(t *testing.T) {
 	}
 }
 
+func TestBodyGetBlock(t *testing.T) {
+	tests := []struct {
+		src  string
+		name string
+		want Tokens
+	}{
+		{
+			`
+attr1 = "foobar"
+service "hello" {
+  attr2 = "world"
+}
+`,
+			"service",
+			Tokens{
+				{
+					Type:         hclsyntax.TokenIdent,
+					Bytes:        []byte("service"),
+					SpacesBefore: 0,
+				},
+				{
+					Type:         hclsyntax.TokenOQuote,
+					Bytes:        []byte{'"'},
+					SpacesBefore: 1,
+				},
+				{
+					Type:         hclsyntax.TokenQuotedLit,
+					Bytes:        []byte("hello"),
+					SpacesBefore: 0,
+				},
+				{
+					Type:         hclsyntax.TokenCQuote,
+					Bytes:        []byte{'"'},
+					SpacesBefore: 0,
+				},
+				{
+					Type:         hclsyntax.TokenOBrace,
+					Bytes:        []byte{'{'},
+					SpacesBefore: 1,
+				},
+				{
+					Type:         hclsyntax.TokenNewline,
+					Bytes:        []byte{'\n'},
+					SpacesBefore: 0,
+				},
+				{
+					Type:         hclsyntax.TokenIdent,
+					Bytes:        []byte("attr2"),
+					SpacesBefore: 2,
+				},
+				{
+					Type:         hclsyntax.TokenEqual,
+					Bytes:        []byte{'='},
+					SpacesBefore: 1,
+				},
+				{
+					Type:         hclsyntax.TokenOQuote,
+					Bytes:        []byte{'"'},
+					SpacesBefore: 1,
+				},
+				{
+					Type:         hclsyntax.TokenQuotedLit,
+					Bytes:        []byte("world"),
+					SpacesBefore: 0,
+				},
+				{
+					Type:         hclsyntax.TokenCQuote,
+					Bytes:        []byte{'"'},
+					SpacesBefore: 0,
+				},
+				{
+					Type:         hclsyntax.TokenNewline,
+					Bytes:        []byte{'\n'},
+					SpacesBefore: 0,
+				},
+				{
+					Type:         hclsyntax.TokenCBrace,
+					Bytes:        []byte{'}'},
+					SpacesBefore: 0,
+				},
+				{
+					Type:         hclsyntax.TokenNewline,
+					Bytes:        []byte{'\n'},
+					SpacesBefore: 0,
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("%s", test.name), func(t *testing.T) {
+			f, diags := ParseConfig([]byte(test.src), "", hcl.Pos{Line: 1, Column: 1})
+			if len(diags) != 0 {
+				for _, diag := range diags {
+					t.Logf("- %s", diag.Error())
+				}
+				t.Fatalf("unexpected diagnostics")
+			}
+
+			block := f.Body().GetBlock(test.name)
+			if block == nil {
+				if test.want != nil {
+					t.Fatal("block not found, but want it to exist")
+				}
+			} else {
+				if test.want == nil {
+					t.Fatal("block found, but expecting not found")
+				}
+
+				got := block.BuildTokens(nil)
+				if !reflect.DeepEqual(got, test.want) {
+					t.Errorf("wrong result\ngot:  %s\nwant: %s", spew.Sdump(got), spew.Sdump(test.want))
+				}
+			}
+		})
+	}
+}
+
 func TestBodySetAttributeValue(t *testing.T) {
 	tests := []struct {
 		src  string

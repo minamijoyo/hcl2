@@ -82,6 +82,22 @@ func (b *Body) GetAttribute(name string) *Attribute {
 	return nil
 }
 
+// GetBlock returns the block from the body that has the given name,
+// or returns nil if there is currently no matching block.
+func (b *Body) GetBlock(name string) *Block {
+	for n := range b.items {
+		if block, isBlock := n.content.(*Block); isBlock {
+			nameObj := block.typeName.content.(*identifier)
+			if nameObj.hasName(name) {
+				// We've found it!
+				return block
+			}
+		}
+	}
+
+	return nil
+}
+
 // SetAttributeValue either replaces the expression of an existing attribute
 // of the given name or adds a new attribute definition to the end of the block.
 //

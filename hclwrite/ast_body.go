@@ -1,6 +1,8 @@
 package hclwrite
 
 import (
+	"reflect"
+
 	"github.com/hashicorp/hcl2/hcl"
 	"github.com/hashicorp/hcl2/hcl/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
@@ -83,14 +85,22 @@ func (b *Body) GetAttribute(name string) *Attribute {
 }
 
 // GetBlock returns the block from the body that has the given name,
-// or returns nil if there is currently no matching block.
-func (b *Body) GetBlock(name string) *Block {
+// and labels or returns nil if there is currently no matching block.
+func (b *Body) GetBlock(typeName string, labels []string) *Block {
 	for n := range b.items {
 		if block, isBlock := n.content.(*Block); isBlock {
-			nameObj := block.typeName.content.(*identifier)
-			if nameObj.hasName(name) {
-				// We've found it!
-				return block
+			typeNameObj := block.typeName.content.(*identifier)
+			if typeNameObj.hasName(typeName) {
+				labelNames := make([]string, 0, len(labels))
+				list := block.labels.List()
+				for _, label := range list {
+					labelObj := label.content.(*quoted)
+					labelNames = append(labelNames, string(labelObj.tokens.Bytes()))
+				}
+				if reflect.DeepEqual(labels, labelNames) {
+					// We've found it!
+					return block
+				}
 			}
 		}
 	}

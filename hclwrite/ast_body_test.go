@@ -3,6 +3,7 @@ package hclwrite
 import (
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
@@ -218,9 +219,10 @@ func TestBodyGetAttribute(t *testing.T) {
 
 func TestBodyGetBlock(t *testing.T) {
 	tests := []struct {
-		src  string
-		name string
-		want Tokens
+		src      string
+		typeName string
+		labels   []string
+		want     Tokens
 	}{
 		{
 			`
@@ -230,6 +232,7 @@ service "hello" {
 }
 `,
 			"service",
+			[]string{` "hello"`},
 			Tokens{
 				{
 					Type:         hclsyntax.TokenIdent,
@@ -306,7 +309,7 @@ service "hello" {
 	}
 
 	for _, test := range tests {
-		t.Run(fmt.Sprintf("%s", test.name), func(t *testing.T) {
+		t.Run(fmt.Sprintf("%s %s", test.typeName, strings.Join(test.labels, " ")), func(t *testing.T) {
 			f, diags := ParseConfig([]byte(test.src), "", hcl.Pos{Line: 1, Column: 1})
 			if len(diags) != 0 {
 				for _, diag := range diags {
@@ -315,7 +318,7 @@ service "hello" {
 				t.Fatalf("unexpected diagnostics")
 			}
 
-			block := f.Body().GetBlock(test.name)
+			block := f.Body().GetBlock(test.typeName, test.labels)
 			if block == nil {
 				if test.want != nil {
 					t.Fatal("block not found, but want it to exist")

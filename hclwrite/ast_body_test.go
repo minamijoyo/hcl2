@@ -766,6 +766,54 @@ func TestBodySetAttributeTraversal(t *testing.T) {
 	}
 }
 
+func TestBodySetAttributeValueInBlock(t *testing.T) {
+	src := `service "label1" {
+  attr1 = "val1"
+}
+`
+	tests := []struct {
+		src      string
+		typeName string
+		labels   []string
+		attr     string
+		val      cty.Value
+		want     string
+	}{
+		{
+			src,
+			"service",
+			[]string{` "label1"`},
+			"attr1",
+			cty.StringVal("updated1"),
+			`service "label1" {
+  attr1 = "updated1"
+}
+`,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("%s = %#v in %s %s", test.attr, test.val, test.typeName, strings.Join(test.labels, " ")), func(t *testing.T) {
+			f, diags := ParseConfig([]byte(test.src), "", hcl.Pos{Line: 1, Column: 1})
+			if len(diags) != 0 {
+				for _, diag := range diags {
+					t.Logf("- %s", diag.Error())
+				}
+				t.Fatalf("unexpected diagnostics")
+			}
+
+			b := f.Body().GetBlock(test.typeName, test.labels)
+			b.Body().SetAttributeValue(test.attr, test.val)
+			tokens := f.BuildTokens(nil)
+			format(tokens)
+			got := string(tokens.Bytes())
+			if got != test.want {
+				t.Errorf("wrong result\ngot:  %s\nwant: %s\n", got, test.want)
+			}
+		})
+	}
+}
+
 func TestBodyAppendBlock(t *testing.T) {
 	tests := []struct {
 		src       string

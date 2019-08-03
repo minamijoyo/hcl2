@@ -814,6 +814,61 @@ func TestBodySetAttributeValueInBlock(t *testing.T) {
 	}
 }
 
+func TestBodySetAttributeValueInNestedBlock(t *testing.T) {
+	src := `parent {
+  attr1 = "val1"
+  child {
+    attr2 = "val2"
+  }
+}
+`
+	tests := []struct {
+		src            string
+		parentTypeName string
+		childTypeName  string
+		attr           string
+		val            cty.Value
+		want           string
+	}{
+		{
+			src,
+			"parent",
+			"child",
+			"attr2",
+			cty.StringVal("updated2"),
+			`parent {
+  attr1 = "val1"
+  child {
+    attr2 = "updated2"
+  }
+}
+`,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("%s = %#v in %s in %s", test.attr, test.val, test.childTypeName, test.parentTypeName), func(t *testing.T) {
+			f, diags := ParseConfig([]byte(test.src), "", hcl.Pos{Line: 1, Column: 1})
+			if len(diags) != 0 {
+				for _, diag := range diags {
+					t.Logf("- %s", diag.Error())
+				}
+				t.Fatalf("unexpected diagnostics")
+			}
+
+			parent := f.Body().GetBlock(test.parentTypeName, []string{})
+			child := parent.Body().GetBlock(test.childTypeName, []string{})
+			child.Body().SetAttributeValue(test.attr, test.val)
+			tokens := f.BuildTokens(nil)
+			format(tokens)
+			got := string(tokens.Bytes())
+			if got != test.want {
+				t.Errorf("wrong result\ngot:  %s\nwant: %s\n", got, test.want)
+			}
+		})
+	}
+}
+
 func TestBodyAppendBlock(t *testing.T) {
 	tests := []struct {
 		src       string

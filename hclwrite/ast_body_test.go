@@ -218,6 +218,18 @@ func TestBodyGetAttribute(t *testing.T) {
 }
 
 func TestBodyGetBlock(t *testing.T) {
+	src := `a = "b"
+service {
+  attr0 = "val0"
+}
+service "label1"{
+  attr1 = "val1"
+}
+service "label1" "label2"{
+  attr2 = "val2"
+}
+`
+
 	tests := []struct {
 		src      string
 		typeName string
@@ -225,17 +237,55 @@ func TestBodyGetBlock(t *testing.T) {
 		want     string
 	}{
 		{
-			`attr1 = "foobar"
-service "hello" {
-  attr2 = "world"
-}
-`,
+			src,
 			"service",
-			[]string{` "hello"`},
-			`service "hello" {
-  attr2 = "world"
+			[]string{},
+			`service {
+  attr0 = "val0"
 }
 `,
+		},
+		{
+			src,
+			"service",
+			[]string{` "label1"`},
+			`service "label1"{
+  attr1 = "val1"
+}
+`,
+		},
+		{
+			src,
+			"service",
+			[]string{` "label1"`, ` "label2"`},
+			`service "label1" "label2"{
+  attr2 = "val2"
+}
+`,
+		},
+		{
+			src,
+			"hoge",
+			[]string{},
+			"",
+		},
+		{
+			src,
+			"hoge",
+			[]string{` "label1"`},
+			"",
+		},
+		{
+			src,
+			"service",
+			[]string{` "label2"`},
+			"",
+		},
+		{
+			src,
+			"service",
+			[]string{` "label2"`, ` "label1"`},
+			"",
 		},
 	}
 

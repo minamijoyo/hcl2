@@ -222,89 +222,20 @@ func TestBodyGetBlock(t *testing.T) {
 		src      string
 		typeName string
 		labels   []string
-		want     Tokens
+		want     string
 	}{
 		{
-			`
-attr1 = "foobar"
+			`attr1 = "foobar"
 service "hello" {
   attr2 = "world"
 }
 `,
 			"service",
 			[]string{` "hello"`},
-			Tokens{
-				{
-					Type:         hclsyntax.TokenIdent,
-					Bytes:        []byte("service"),
-					SpacesBefore: 0,
-				},
-				{
-					Type:         hclsyntax.TokenOQuote,
-					Bytes:        []byte{'"'},
-					SpacesBefore: 1,
-				},
-				{
-					Type:         hclsyntax.TokenQuotedLit,
-					Bytes:        []byte("hello"),
-					SpacesBefore: 0,
-				},
-				{
-					Type:         hclsyntax.TokenCQuote,
-					Bytes:        []byte{'"'},
-					SpacesBefore: 0,
-				},
-				{
-					Type:         hclsyntax.TokenOBrace,
-					Bytes:        []byte{'{'},
-					SpacesBefore: 1,
-				},
-				{
-					Type:         hclsyntax.TokenNewline,
-					Bytes:        []byte{'\n'},
-					SpacesBefore: 0,
-				},
-				{
-					Type:         hclsyntax.TokenIdent,
-					Bytes:        []byte("attr2"),
-					SpacesBefore: 2,
-				},
-				{
-					Type:         hclsyntax.TokenEqual,
-					Bytes:        []byte{'='},
-					SpacesBefore: 1,
-				},
-				{
-					Type:         hclsyntax.TokenOQuote,
-					Bytes:        []byte{'"'},
-					SpacesBefore: 1,
-				},
-				{
-					Type:         hclsyntax.TokenQuotedLit,
-					Bytes:        []byte("world"),
-					SpacesBefore: 0,
-				},
-				{
-					Type:         hclsyntax.TokenCQuote,
-					Bytes:        []byte{'"'},
-					SpacesBefore: 0,
-				},
-				{
-					Type:         hclsyntax.TokenNewline,
-					Bytes:        []byte{'\n'},
-					SpacesBefore: 0,
-				},
-				{
-					Type:         hclsyntax.TokenCBrace,
-					Bytes:        []byte{'}'},
-					SpacesBefore: 0,
-				},
-				{
-					Type:         hclsyntax.TokenNewline,
-					Bytes:        []byte{'\n'},
-					SpacesBefore: 0,
-				},
-			},
+			`service "hello" {
+  attr2 = "world"
+}
+`,
 		},
 	}
 
@@ -320,17 +251,17 @@ service "hello" {
 
 			block := f.Body().GetBlock(test.typeName, test.labels)
 			if block == nil {
-				if test.want != nil {
+				if test.want != "" {
 					t.Fatal("block not found, but want it to exist")
 				}
 			} else {
-				if test.want == nil {
+				if test.want == "" {
 					t.Fatal("block found, but expecting not found")
 				}
 
-				got := block.BuildTokens(nil)
-				if !reflect.DeepEqual(got, test.want) {
-					t.Errorf("wrong result\ngot:  %s\nwant: %s", spew.Sdump(got), spew.Sdump(test.want))
+				got := string(block.BuildTokens(nil).Bytes())
+				if got != test.want {
+					t.Errorf("wrong result\ngot:  %s\nwant: %s", got, test.want)
 				}
 			}
 		})

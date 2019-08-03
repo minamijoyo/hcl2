@@ -228,6 +228,12 @@ service "label1"{
 service "label1" "label2"{
   attr2 = "val2"
 }
+parent {
+  attr3 = "val3"
+  child {
+    attr4 = "val4"
+  }
+}
 `
 
 	tests := []struct {
@@ -265,6 +271,18 @@ service "label1" "label2"{
 		},
 		{
 			src,
+			"parent",
+			[]string{},
+			`parent {
+  attr3 = "val3"
+  child {
+    attr4 = "val4"
+  }
+}
+`,
+		},
+		{
+			src,
 			"hoge",
 			[]string{},
 			"",
@@ -285,6 +303,12 @@ service "label1" "label2"{
 			src,
 			"service",
 			[]string{` "label2"`, ` "label1"`},
+			"",
+		},
+		{
+			src,
+			"child",
+			[]string{},
 			"",
 		},
 	}
